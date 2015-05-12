@@ -1,0 +1,21 @@
+alignment bl
+gap_x 2
+gap_y 2
+#own_window_class ConkyLua 
+background no
+own_window yes 
+own_window_transparent no
+own_window_type normal 
+own_window_hints undecorated,below,sticky,skip_taskbar,skip_pager
+double_buffer yes
+minimum_size 1920 3
+text_buffer_size 2048 
+
+use_xft yes
+xftfont Liberation:size=9
+
+default_color white
+update_interval 1.0
+
+TEXT
+${execpi 10 cgminer-monitor-horizontal}

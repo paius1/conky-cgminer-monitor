@@ -1,0 +1,183 @@
+#! /bin/bash -e
+# Revised 11May2015
+# This Script is Used in a Conky configuration to create a 
+#  horizontal bar showing vital statistics from the cgminer-api:
+#
+#  [Miner Name][Pool][Avg Hashrate]:[Current Hashrate][Temp][HW Errors] 
+#
+# use the included conky config or add 
+#     ${execpi 10 /path/to/cgminer-mon-horizontal}
+# to your conky config 
+# make sure cgminer-monitor-horizontal is executable
+#   chmod +x cgminer-monitor-horizontal
+# Conky uses the directory of its config file as the working directory
+# so be sure cgminer-monitor-horizontal, gradient_function, Miners and 
+# Pools are in the same directory as the Conky config file
+#
+
+# Miners is an associative array of the form
+#  Miners=( ["Hostname"]="a goto value for Conky" )
+#   e.g. 
+#        Miners=( ["Miner1"]="10" \
+#                 ["Miner2"]="150" \
+#               )
+
+MY_PATH="`dirname \"$0\"`"
+
+  declare -A Miners
+. $MY_PATH/Miners
+
+# Pools is an associative array of the form
+#  Pools=( ["Pool named returned by cgminer-api"]="An Abreviation" )
+#   e.g. Miners=( ["stratum+tcp://somepool.com"]="SMP" \
+#                 ["anotherpool.com"]="ANO" 
+#               )
+
+  declare -A Pools
+. $MY_PATH/Pools
+
+# The gradient function provides color to the reported values
+# Moving from blue => green => yellow => orange => red
+
+. $MY_PATH/gradient_function
+
+# Calculate Values for Conky
+
+AvgHashRate=0
+CurrentHashRate=0
+
+for Miner in "${!Miners[@]}"
+ do 
+
+ # Check to see if Miner is Accessible
+ # on Debian I added [IP address] [hostname] to the /etc/hosts file
+ # e.g as root echo 10.10.10.25 Miner1 >> /etc/hosts
+
+ ping -c 1 -q $Miner > /dev/null  & wait $!
+  # No Answer?
+  if [ $? != 0 ]; then	
+    echo -n "\${goto ${Miners[$Miner]}}"
+     echo -n '${color red}'; echo -n "$Miner "
+    echo ${Miner}='0.0' >>/tmp/sandboxHashRate
+     echo ${Miner}Cur='0.0' >>/tmp/sandboxHashRate
+    continue
+  fi
+
+ # Cgminer Api
+ #  start cgminer with the "--api-listen" option
+
+ Summary=`cgminer-api lcd ${Miner}`
+
+  AverageRate=`echo "$Summary"|grep '\[GHSavg\]'|awk '{print $3}'`
+
+# Set $lower_limit and $step to place "Normal" Value as Yellow
+# I am running Antminer S3's which run "normally" at 480Gh/s
+# There are 36 steps in the gradient function
+# play with these numbers to get them right
+# Set the value for AverageHashrate manually to see the results
+
+  lower_limit=380  # beginning value for gradient
+  step=5	   # change in measure for gradient
+# AverageRate= # change this to your average and adjust lower_limit 
+               # until the text is yellow
+               # then change to a "High" Hashrate to check gradient
+
+    if [ $(echo "  $AverageRate < ( $lower_limit + $step + 1 ) " | bc) -eq 1 ]; then
+     atail=1
+    else 
+     base=`echo $AverageRate - $lower_limit | bc`
+      atail=`echo  $base / $step | bc`
+    fi
+   avgcolor=`gradient | tail -n$atail |head -n1`
+
+  CurrentRate=`echo "$Summary"|grep '\[GHS5s\]'|awk '{print $3}'`
+    if [ $(echo " $CurrentRate < ( $lower_limit + $step + 1 ) " | bc) -eq 1 ]; then
+     curcolor=00c4ff
+    else 
+     base=`echo $CurrentRate - $lower_limit | bc`
+      atail=`echo  $base / $step | bc`
+    fi
+   curcolor=`gradient | tail -n$atail |head -n1`
+
+  Temp=`echo "$Summary"|grep '\[temp\]'|awk '{print $3}'`
+
+# Change limits and step for temperature
+  lower_limit=32
+  step=2
+
+   if [ $(echo " $Temp < ( $lower_limit + $step + 1 ) " | bc) -eq 1 ]; then
+    tempcolor=00c4ff
+   else 
+    base=`echo $Temp - $lower_limit | bc`
+     atail=`echo  $base / $step | bc`
+   fi
+   tempcolor=`gradient | tail -n$atail |head -n1`
+
+  Pool=`echo "$Summary"|grep '\[pool\]'|awk '{print $3}'`
+
+  HWErrors=`cgminer-api summary ${Miner}|grep 'Hardware%\]'|awk '{print $4}'`
+
+# Values for use by AvgHashRate script
+#  Miner Values will be added if the don't already exist
+
+AvgHashRate=`echo $AvgHashRate + $AverageRate | bc`
+CurrentHashRate=`echo $CurrentHashRate + $CurrentRate | bc`
+
+# grep -q "$Miner" /tmp/sandboxHashRate \
+#  && sed -i.bak "s/^\(${Miner}=\).*/\1${AverageRate}/" /tmp/sandboxHashRate \
+#  || echo ${Miner}=`printf '%0.f' ${AverageRate}` >> /tmp/sandboxHashRate
+
+# grep -q "${Miner}Cur" /tmp/sandboxHashRate \
+#  && sed -i.bak "s/^\(${Miner}Cur=\).*/\1${CurrentRate}/" /tmp/sandboxHashRate \
+#  || echo ${Miner}Cur=`printf '%0.f' ${CurrentRate}` >> /tmp/sandboxHashRate
+
+# Output for Conky	
+  echo -n "\${goto ${Miners[$Miner]}}"
+  echo -n '${color white}'
+  echo -n $Miner |sed -e s/_//
+  echo -n '${color burlywood}'
+  echo -n "  ${Pools["${Pool}"]} "
+  echo -n "\${color #$avgcolor}"
+  printf "%.0f" $AverageRate
+  echo -n ':'
+  echo -n "\${color #$curcolor}"
+  printf "%.0f" "${CurrentRate}"	
+  echo -n "\${color #$tempcolor}"
+  echo -n " $Temp° "
+  echo -n '${color grey}.'
+  echo -n `printf "%.2f" ${HWErrors}|awk -F"." '{print $2}'`
+  echo -n "%"
+
+done
+
+# Now print out Totals for all Miners
+
+ lower_limit=3200  # beginning value for gradient
+ step=10	   # change in measure for gradient
+# AvgHashRate= # change this to your average and adjust lower_limit 
+               # until the text is yellow
+
+  if [ $( echo " $AvgHashRate < ( $lower_limit + $step + 1 ) " | bc ) -eq 1 ]; then
+   atail=1
+  else
+   base=`echo $AvgHashRate - $lower_limit | bc`
+   atail=`echo  $base / $step | bc`
+  fi
+ avgcolor=`gradient | tail -n$atail |head -n1`
+
+  if [ $( echo " $CurrentHashRate < ( $lower_limit + $step + 1 ) " | bc ) -eq 1 ]; then
+   atail=1
+  else
+   base=`echo $CurrentHashRate - $lower_limit | bc`
+   atail=`echo  $base / $step | bc`
+  fi
+ curcolor=`gradient | tail -n$atail |head -n1`
+
+echo -n '${goto 1840}'
+echo -n "\${color #$avgcolor}"
+printf '%.*f' 0 $AvgHashRate
+echo -n '${goto 1880}'
+echo -n "\${color #$curcolor}"
+printf '%.*f' 0 $CurrentHashRate
+
+exit 0

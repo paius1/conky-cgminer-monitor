@@ -1,0 +1,7 @@
+Pools=( ["stratum+tcp://us.solo.antpool.com:3333"]="Ant" \
+        ["stratum+tcp://stratum.antpool.com:3333"]="Ant" \
+        ["stratum+tcp://us-east.stratum.bitcoin.cz:3333"]="BCu" \
+        ["stratum+tcp://stratum.bitcoin.cz:3333"]="BCz" \
+        ["stratum+tcp://stratum.f2pool.com:3333"]="f2p" \
+        ["stratum+tcp://stratum.mining.eligius.st:3334"]="StE" \
+      )
