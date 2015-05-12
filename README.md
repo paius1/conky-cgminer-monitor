@@ -33,18 +33,14 @@ Edit:
    Miners is an associative array of the form
    Miners=( ["Hostname"]="a goto value for Conky" )
     e.g. 
-     Miners=( ["Miner1"]="10" \
-              ["Miner2"]="150" \
-            )
+     Miners=( ["Miner1"]="10" ["Miner2"]="150" )
 
 5) Pools
    Pools is an associative array of the form
    Pools=( ["Pool named returned by cgminer-api"]="An Abreviation" )
    execute cgminer-api [Hostname] to find the full pool name
     e.g. 
-     Miners=( ["stratum+tcp://somepool.com"]="SMP" \
-              ["anotherpool.com"]="ANO" 
-            )
+     Miners=( ["stratum+tcp://somepool.com"]="SMP" ["anotherpool.com"]="ANO" )
 
 6) cgminer-monitor-horizontal
    set lower_limit and step for each worker and for 
