@@ -1,4 +1,4 @@
-#! /bin/bash -e
+#! /bin/bash 
 # Revised 11May2015
 # This Script is Used in a Conky configuration to create a 
 #  horizontal bar showing vital statistics from the cgminer-api:
@@ -143,7 +143,7 @@ CurrentHashRate=`echo $CurrentHashRate + $CurrentRate | bc`
   echo -n "\${color #$curcolor}"
   printf "%.0f" "${CurrentRate}"	
   echo -n "\${color #$tempcolor}"
-  echo -n " $Temp° "
+  echo -n " $TempÂ° "
   echo -n '${color grey}.'
   echo -n `printf "%.2f" ${HWErrors}|awk -F"." '{print $2}'`
   echo -n "%"
