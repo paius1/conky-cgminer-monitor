@@ -37,7 +37,7 @@ Edit:
 
 5) Pools
    Pools is an associative array of the form
-   Pools=( ["Pool named returned by cgminer-api"]="An Abreviation" )
+   Pools=( ["Pool named returned by cgminer-api"]="An Abbreviation" )
    execute cgminer-api [Hostname] to find the full pool name
     e.g. 
      Miners=( ["stratum+tcp://somepool.com"]="SMP" ["anotherpool.com"]="ANO" )
